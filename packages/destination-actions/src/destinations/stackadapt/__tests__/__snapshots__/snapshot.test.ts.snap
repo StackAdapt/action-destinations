@@ -1,0 +1,29 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Testing snapshot for actions-stackadapt destination: getAudience action - all fields 1`] = `
+Object {
+  "operationName": "GetExistingSegment",
+  "query": "query GetExistingSegment($externalId: ID!) {
+            customSegment(id: $externalId) {
+              id
+            }
+          }",
+  "variables": Object {
+    "externalId": "BT1f3Lo]y",
+  },
+}
+`;
+
+exports[`Testing snapshot for actions-stackadapt destination: getAudience action - required fields 1`] = `
+Object {
+  "operationName": "GetExistingSegment",
+  "query": "query GetExistingSegment($externalId: ID!) {
+            customSegment(id: $externalId) {
+              id
+            }
+          }",
+  "variables": Object {
+    "externalId": "BT1f3Lo]y",
+  },
+}
+`;
