@@ -5,7 +5,7 @@ import postMessage from './postMessage'
 import forwardProfile from './forwardProfile'
 
 // TODO: change to production
-export const domain = 'https://sandbox.stackadapt.com/public/graphql'
+export const domain = 'https://api.stackadapt.com/graphql'
 const destination: DestinationDefinition<Settings> = {
   name: 'StackAdapt Audiences',
   slug: 'actions-stackadapt-audiences',

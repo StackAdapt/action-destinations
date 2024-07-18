@@ -27,4 +27,8 @@ export interface Payload {
    * For audience enter/exit events, this will be the audience key.
    */
   segment_computation_key?: string
+  /**
+   * The StackAdapt audience to add the profile to.
+   */
+  advertiser_id: string
 }
