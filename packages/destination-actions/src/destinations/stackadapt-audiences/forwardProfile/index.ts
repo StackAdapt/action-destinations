@@ -29,7 +29,7 @@ interface TokenInfoResponse {
 const action: ActionDefinition<Settings, Payload> = {
   title: 'Forward Profile',
   description: 'Forward new or updated user profile to StackAdapt',
-  defaultSubscription: 'event = "Identify"',
+  defaultSubscription: 'type = "identify" or type = "alias"',
   fields: {
     traits: {
       label: 'User Properties',
@@ -51,6 +51,22 @@ const action: ActionDefinition<Settings, Payload> = {
           then: { '@path': '$.userId' },
           else: { '@path': '$.anonymousId' }
         }
+      }
+    },
+    previous_id: {
+      label: 'Previous ID',
+      type: 'string',
+      description: "The user's previous ID, for alias events",
+      default: {
+        '@path': '$.previousId'
+      }
+    },
+    event_type: {
+      label: 'Event Type',
+      description: 'The Segment event type (identify, alias, etc.)',
+      type: 'string',
+      default: {
+        '@path': '$.type'
       }
     },
     enable_batching: {
