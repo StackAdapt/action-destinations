@@ -28,7 +28,7 @@ export interface Payload {
    */
   segment_computation_key?: string
   /**
-   * The StackAdapt audience to add the profile to.
+   * The StackAdapt advertiser to add the profile to.
    */
   advertiser_id: string
 }

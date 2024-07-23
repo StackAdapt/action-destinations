@@ -90,8 +90,8 @@ const action: ActionDefinition<Settings, Payload> = {
       }
     },
     advertiser_id: {
-      label: 'Audience',
-      description: 'The StackAdapt audience to add the profile to.',
+      label: 'Advertiser',
+      description: 'The StackAdapt advertiser to add the profile to.',
       type: 'string',
       required: true,
       dynamic: true
