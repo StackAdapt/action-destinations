@@ -107,7 +107,7 @@ describe('forwardProfile', () => {
             upsertExternalAudienceMapping(
               input: {
                 advertiserId: 23,
-                mappingSchema: \\"[{\\\\\\"incoming_key\\\\\\":\\\\\\"audienceId\\\\\\",\\\\\\"destination_key\\\\\\":\\\\\\"AudienceID\\\\\\",\\\\\\"data_type\\\\\\":\\\\\\"string\\\\\\"},{\\\\\\"incoming_key\\\\\\":\\\\\\"audienceName\\\\\\",\\\\\\"destination_key\\\\\\":\\\\\\"AudienceName\\\\\\",\\\\\\"data_type\\\\\\":\\\\\\"string\\\\\\"}]\\",
+                mappingSchema: \\"[{\\\\\\"incoming_key\\\\\\":\\\\\\"audienceId\\\\\\",\\\\\\"destination_key\\\\\\":\\\\\\"external_id\\\\\\",\\\\\\"data_type\\\\\\":\\\\\\"string\\\\\\"},{\\\\\\"incoming_key\\\\\\":\\\\\\"audienceName\\\\\\",\\\\\\"destination_key\\\\\\":\\\\\\"name\\\\\\",\\\\\\"data_type\\\\\\":\\\\\\"string\\\\\\"}]\\",
                 mappableType: \\"segmentio\\"
               }
             ) {
@@ -164,7 +164,7 @@ describe('forwardProfile', () => {
             upsertExternalAudienceMapping(
               input: {
                 advertiserId: 23,
-                mappingSchema: \\"[{\\\\\\"incoming_key\\\\\\":\\\\\\"audienceId\\\\\\",\\\\\\"destination_key\\\\\\":\\\\\\"AudienceID\\\\\\",\\\\\\"data_type\\\\\\":\\\\\\"string\\\\\\"},{\\\\\\"incoming_key\\\\\\":\\\\\\"audienceName\\\\\\",\\\\\\"destination_key\\\\\\":\\\\\\"AudienceName\\\\\\",\\\\\\"data_type\\\\\\":\\\\\\"string\\\\\\"}]\\",
+                mappingSchema: \\"[{\\\\\\"incoming_key\\\\\\":\\\\\\"audienceId\\\\\\",\\\\\\"destination_key\\\\\\":\\\\\\"external_id\\\\\\",\\\\\\"data_type\\\\\\":\\\\\\"string\\\\\\"},{\\\\\\"incoming_key\\\\\\":\\\\\\"audienceName\\\\\\",\\\\\\"destination_key\\\\\\":\\\\\\"name\\\\\\",\\\\\\"data_type\\\\\\":\\\\\\"string\\\\\\"}]\\",
                 mappableType: \\"segmentio\\"
               }
             ) {
@@ -221,7 +221,7 @@ describe('forwardProfile', () => {
             upsertExternalAudienceMapping(
               input: {
                 advertiserId: 23,
-                mappingSchema: \\"[{\\\\\\"incoming_key\\\\\\":\\\\\\"audienceId\\\\\\",\\\\\\"destination_key\\\\\\":\\\\\\"AudienceID\\\\\\",\\\\\\"data_type\\\\\\":\\\\\\"string\\\\\\"},{\\\\\\"incoming_key\\\\\\":\\\\\\"audienceName\\\\\\",\\\\\\"destination_key\\\\\\":\\\\\\"AudienceName\\\\\\",\\\\\\"data_type\\\\\\":\\\\\\"string\\\\\\"}]\\",
+                mappingSchema: \\"[{\\\\\\"incoming_key\\\\\\":\\\\\\"audienceId\\\\\\",\\\\\\"destination_key\\\\\\":\\\\\\"external_id\\\\\\",\\\\\\"data_type\\\\\\":\\\\\\"string\\\\\\"},{\\\\\\"incoming_key\\\\\\":\\\\\\"audienceName\\\\\\",\\\\\\"destination_key\\\\\\":\\\\\\"name\\\\\\",\\\\\\"data_type\\\\\\":\\\\\\"string\\\\\\"}]\\",
                 mappableType: \\"segmentio\\"
               }
             ) {

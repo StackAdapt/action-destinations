@@ -26,12 +26,12 @@ const standardFields = new Set([
 const audienceMapping = stringifyJsonWithEscapedQuotes([
   {
     incoming_key: 'audienceId',
-    destination_key: 'AudienceID',
+    destination_key: 'external_id',
     data_type: 'string'
   },
   {
     incoming_key: 'audienceName',
-    destination_key: 'AudienceName',
+    destination_key: 'name',
     data_type: 'string'
   }
 ])

@@ -27,7 +27,7 @@ Object {
       upsertExternalAudienceMapping(
         input: {
           advertiserId: PsAwlRv%,
-          mappingSchema: \\"[{\\\\\\"incoming_key\\\\\\":\\\\\\"audienceId\\\\\\",\\\\\\"destination_key\\\\\\":\\\\\\"AudienceID\\\\\\",\\\\\\"data_type\\\\\\":\\\\\\"string\\\\\\"},{\\\\\\"incoming_key\\\\\\":\\\\\\"audienceName\\\\\\",\\\\\\"destination_key\\\\\\":\\\\\\"AudienceName\\\\\\",\\\\\\"data_type\\\\\\":\\\\\\"string\\\\\\"}]\\",
+          mappingSchema: \\"[{\\\\\\"incoming_key\\\\\\":\\\\\\"audienceId\\\\\\",\\\\\\"destination_key\\\\\\":\\\\\\"external_id\\\\\\",\\\\\\"data_type\\\\\\":\\\\\\"string\\\\\\"},{\\\\\\"incoming_key\\\\\\":\\\\\\"audienceName\\\\\\",\\\\\\"destination_key\\\\\\":\\\\\\"name\\\\\\",\\\\\\"data_type\\\\\\":\\\\\\"string\\\\\\"}]\\",
           mappableType: \\"segmentio\\"
         }
       ) {
@@ -66,7 +66,7 @@ Object {
       upsertExternalAudienceMapping(
         input: {
           advertiserId: PsAwlRv%,
-          mappingSchema: \\"[{\\\\\\"incoming_key\\\\\\":\\\\\\"audienceId\\\\\\",\\\\\\"destination_key\\\\\\":\\\\\\"AudienceID\\\\\\",\\\\\\"data_type\\\\\\":\\\\\\"string\\\\\\"},{\\\\\\"incoming_key\\\\\\":\\\\\\"audienceName\\\\\\",\\\\\\"destination_key\\\\\\":\\\\\\"AudienceName\\\\\\",\\\\\\"data_type\\\\\\":\\\\\\"string\\\\\\"}]\\",
+          mappingSchema: \\"[{\\\\\\"incoming_key\\\\\\":\\\\\\"audienceId\\\\\\",\\\\\\"destination_key\\\\\\":\\\\\\"external_id\\\\\\",\\\\\\"data_type\\\\\\":\\\\\\"string\\\\\\"},{\\\\\\"incoming_key\\\\\\":\\\\\\"audienceName\\\\\\",\\\\\\"destination_key\\\\\\":\\\\\\"name\\\\\\",\\\\\\"data_type\\\\\\":\\\\\\"string\\\\\\"}]\\",
           mappableType: \\"segmentio\\"
         }
       ) {
