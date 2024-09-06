@@ -10,7 +10,7 @@ const standardFields = new Set([
   'firstName',
   'lastName',
   'phone',
-  'emailMarketingStatus',
+  'marketingStatus',
   'company',
   'gender',
   'city',
