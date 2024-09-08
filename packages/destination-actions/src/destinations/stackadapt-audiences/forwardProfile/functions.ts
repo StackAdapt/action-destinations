@@ -129,7 +129,7 @@ function getProfileMappings(customFields: string[], fieldTypes: Record<string, s
   for (const field of customFields) {
     mappingSchema.push({
       incoming_key: field,
-      destination_key: field,
+      destination_key: field === 'userId' ? 'external_id' : field,
       data_type: fieldTypes[field] ?? 'string',
       is_pii: false
     })
