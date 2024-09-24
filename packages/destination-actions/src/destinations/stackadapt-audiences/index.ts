@@ -63,11 +63,11 @@ const destination: DestinationDefinition<Settings> = {
     forwardProfile,
     forwardAudienceEvent
   },
-  onDelete: async (request, { payload, settings }) => {
+  onDelete: async (request, { payload }) => {
     const userId = payload.userId ?? payload.anonymousId
     // subAdvertiserId is required for deleteProfiles mutation
-    const subAdvertiserId = settings.advertiserId
-    //const subAdvertiserId = 1
+    //const subAdvertiserId = settings.advertiserId
+    const subAdvertiserId = 1
     const query = `mutation {
       deleteProfiles(
         subAdvertiserId: ${subAdvertiserId},
