@@ -6,7 +6,6 @@ import forwardAudienceEvent from './forwardAudienceEvent'
 import { AdvertiserScopesResponse } from './types'
 import { GQL_ENDPOINT } from './functions'
 
-// test for local git commit
 const destination: DestinationDefinition<Settings> = {
   name: 'StackAdapt Audiences',
   slug: 'actions-stackadapt-audiences',
@@ -63,6 +62,37 @@ const destination: DestinationDefinition<Settings> = {
   actions: {
     forwardProfile,
     forwardAudienceEvent
+  },
+  onDelete: async (request, { payload, settings }) => {
+    const userId = payload.userId ?? payload.anonymousId
+    // subAdvertiserId is required for deleteProfiles mutation
+    const subAdvertiserId = settings.advertiserId
+    //const subAdvertiserId = 1
+    const query = `mutation {
+      deleteProfiles(
+        subAdvertiserId: ${subAdvertiserId},
+        externalProvider: "segmentio",
+        userIds: ["${userId}"]
+      ) {
+        success
+      }
+    }`
+
+    const res = await request(GQL_ENDPOINT, {
+      body: JSON.stringify({ query }),
+      throwHttpErrors: false
+    })
+
+    if (res.status !== 200) {
+      throw new Error('Failed to delete profile: ' + res.statusText)
+    }
+
+    const result = await res.json()
+    if (!result.data.deleteProfiles.success) {
+      throw new Error('Profile deletion was not successful')
+    }
+
+    return result
   }
 }
 
