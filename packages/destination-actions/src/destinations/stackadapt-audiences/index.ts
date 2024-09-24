@@ -6,6 +6,7 @@ import forwardAudienceEvent from './forwardAudienceEvent'
 import { AdvertiserScopesResponse } from './types'
 import { GQL_ENDPOINT } from './functions'
 
+// test for local git commit
 const destination: DestinationDefinition<Settings> = {
   name: 'StackAdapt Audiences',
   slug: 'actions-stackadapt-audiences',
