@@ -65,16 +65,14 @@ const destination: DestinationDefinition<Settings> = {
   },
   onDelete: async (request, { payload }) => {
     const userId = payload.userId ?? payload.anonymousId
-    // subAdvertiserId is required for deleteProfiles mutation
-    //const subAdvertiserId = settings.advertiserId
-    const subAdvertiserId = 1
     const query = `mutation {
-      deleteProfiles(
-        subAdvertiserId: ${subAdvertiserId},
-        externalProvider: "segmentio",
-        userIds: ["${userId}"]
+      deleteProfilesFromSegmentioSourcePod(
+        userID: "${userId}"
       ) {
-        success
+        userErrors {
+          message
+          path
+        }
       }
     }`
 
@@ -88,8 +86,10 @@ const destination: DestinationDefinition<Settings> = {
     }
 
     const result = await res.json()
-    if (!result.data.deleteProfiles.success) {
-      throw new Error('Profile deletion was not successful')
+    if (result.data.deleteProfile.userErrors.length > 0) {
+      throw new Error(
+        'Profile deletion was not successful: ' + result.data.deleteProfile.userErrors.map((e) => e.message).join(', ')
+      )
     }
 
     return result
