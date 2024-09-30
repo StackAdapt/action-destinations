@@ -65,9 +65,43 @@ const destination: DestinationDefinition<Settings> = {
   },
   onDelete: async (request, { payload }) => {
     const userId = payload.userId ?? payload.anonymousId
+    // query tokenInfo to get advertiserID
+    const TokenQuery = `query TokenInfo {
+      tokenInfo {
+        scopesByAdvertiser {
+          nodes {
+            advertiser {
+              id
+            }
+          }
+          totalCount
+        }
+      }
+    }`
+
+    const res_token = await request(GQL_ENDPOINT, {
+      body: JSON.stringify({ query: TokenQuery }),
+      throwHttpErrors: false
+    })
+
+    if (res_token.status !== 200) {
+      throw new Error('Failed to fetch advertiser information: ' + res_token.statusText)
+    }
+
+    const result_token = await res_token.json()
+    const advertiserNode = result_token.data?.tokenInfo?.scopesByAdvertiser?.nodes
+
+    if (!advertiserNode || advertiserNode.length === 0) {
+      throw new Error('No advertiser ID found.')
+    }
+
+    // collect advertiser IDs into an array
+    const advertiserIDs = advertiserNode.map((node: { advertiser: { id: string } }) => node.advertiser.id)
+
     const query = `mutation {
       deleteProfilesFromSegmentioSourcePod(
         userID: "${userId}"
+        advertiserIDs: ${JSON.stringify(advertiserIDs)}
       ) {
         userErrors {
           message
@@ -85,10 +119,15 @@ const destination: DestinationDefinition<Settings> = {
       throw new Error('Failed to delete profile: ' + res.statusText)
     }
 
+    interface UserError {
+      message: string
+      path: string[]
+    }
     const result = await res.json()
     if (result.data.deleteProfile.userErrors.length > 0) {
       throw new Error(
-        'Profile deletion was not successful: ' + result.data.deleteProfile.userErrors.map((e) => e.message).join(', ')
+        'Profile deletion was not successful: ' +
+          result.data.deleteProfile.userErrors.map((e: UserError) => e.message).join(', ')
       )
     }
 
