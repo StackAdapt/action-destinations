@@ -94,14 +94,15 @@ const destination: DestinationDefinition<Settings> = {
     if (!advertiserNode || advertiserNode.length === 0) {
       throw new Error('No advertiser ID found.')
     }
+    // Collect advertiser IDs into an array
+    const advertiserIds = advertiserNode.map((node: { advertiser: { id: string } }) => node.advertiser.id)
 
-    // collect advertiser IDs into an array
-    const advertiserIDs = advertiserNode.map((node: { advertiser: { id: string } }) => node.advertiser.id)
-
+    const formattedExternalIds = `["${userId}"]`
+    const formattedAdvertiserIds = `[${advertiserIds.map((id: string) => `"${id}"`).join(', ')}]`
     const query = `mutation {
-      deleteProfilesFromSegmentioSourcePod(
-        userID: "${userId}"
-        advertiserIDs: ${JSON.stringify(advertiserIDs)}
+      deleteProfilesWithExternalIds(
+        externalIds: ${formattedExternalIds},
+        advertiserIDs: ${formattedAdvertiserIds}
       ) {
         userErrors {
           message
