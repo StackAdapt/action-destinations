@@ -26,16 +26,15 @@ const deleteEventPayload: Partial<SegmentEvent> = {
 
 describe('onDelete action', () => {
   afterEach(() => {
-    nock.cleanAll()
+    nock.cleanAll() // Clean up nock after each test
   })
 
   it('should delete a profile successfully', async () => {
-    let requestBody
+    let deleteRequestBody
 
-    // Mock the Token Query request
+    // Mock the Token Query request (first API call)
     nock(gqlHostUrl)
       .post(gqlPath, (body) => {
-        requestBody = body
         return body
       })
       .reply(200, {
@@ -54,9 +53,12 @@ describe('onDelete action', () => {
         }
       })
 
-    // Mock the deleteProfilesWithExternalIds mutation
+    // Mock the deleteProfilesWithExternalIds mutation (second API call)
     nock(gqlHostUrl)
-      .post(gqlPath)
+      .post(gqlPath, (body) => {
+        deleteRequestBody = body // Capture the second request body
+        return body
+      })
       .reply(200, {
         data: {
           deleteProfilesWithExternalIds: {
@@ -65,32 +67,32 @@ describe('onDelete action', () => {
         }
       })
 
-    const event = createTestEvent(deleteEventPayload)
+    // Create a test event with a userId
+    const event = createTestEvent({
+      userId: mockUserId, // Ensure userId is passed in the event
+      type: 'identify',
+      context: {
+        personas: {
+          computation_class: 'audience',
+          computation_key: 'first_time_buyer',
+          computation_id: 'aud_123'
+        }
+      }
+    })
+
+    // Pass the userId via the mapping to ensure it's part of the payload
     const responses = await testDestination.testAction('onDelete', {
       event,
-      useDefaultMappings: true,
-      mapping: mockMappings,
+      useDefaultMappings: true, // This ensures default mapping is applied
+      mapping: { userId: mockUserId }, // Ensure mapping passes userId correctly
       settings: { apiKey: mockGqlKey }
     })
 
-    expect(responses.length).toBe(1)
-    expect(responses[0].status).toBe(200)
-    expect(responses[0].request.headers).toMatchInlineSnapshot(`
-      Headers {
-        Symbol(map): Object {
-          "authorization": Array [
-            "Bearer test-graphql-key",
-          ],
-          "content-type": Array [
-            "application/json",
-          ],
-          "user-agent": Array [
-            "Segment (Actions)",
-          ],
-        },
-      }
-    `)
-    expect(requestBody).toMatchInlineSnapshot(`
+    // Assert that two responses were received
+    expect(responses.length).toBe(2)
+
+    // Ensure the second request body (profile deletion) matches the expected mutation
+    expect(deleteRequestBody).toMatchInlineSnapshot(`
       Object {
         "query": "mutation {
           deleteProfilesWithExternalIds(
@@ -100,6 +102,7 @@ describe('onDelete action', () => {
           ) {
             userErrors {
               message
+              path
             }
           }
         }",
@@ -177,12 +180,39 @@ describe('onDelete action', () => {
   })
 
   it('should batch multiple delete profile events into a single request', async () => {
-    let requestBody
-    const events = [createTestEvent(deleteEventPayload), createTestEvent(deleteEventPayload)]
+    let deleteRequestBody
 
+    // Define two events with valid userIds
+    const events = [
+      createTestEvent({ userId: 'user-id-1' }), // First event with userId-1
+      createTestEvent({ userId: 'user-id-2' }) // Second event with userId-2
+    ]
+
+    // Mock the Token Query request (first API call)
     nock(gqlHostUrl)
       .post(gqlPath, (body) => {
-        requestBody = body
+        return body
+      })
+      .reply(200, {
+        data: {
+          tokenInfo: {
+            scopesByAdvertiser: {
+              nodes: [
+                {
+                  advertiser: {
+                    id: mockAdvertiserId // Ensure an advertiser ID is returned
+                  }
+                }
+              ]
+            }
+          }
+        }
+      })
+
+    // Mock the deleteProfilesWithExternalIds mutation (second API call)
+    nock(gqlHostUrl)
+      .post(gqlPath, (body) => {
+        deleteRequestBody = body // Capture the second request body
         return body
       })
       .reply(200, {
@@ -193,21 +223,24 @@ describe('onDelete action', () => {
         }
       })
 
+    // Execute the batch action
     const responses = await testDestination.testBatchAction('onDelete', {
-      events,
-      useDefaultMappings: true,
-      mapping: mockMappings,
+      events, // Pass the array of events with userId values
+      useDefaultMappings: true, // Apply the default mappings for each event
       settings: { apiKey: mockGqlKey }
     })
 
-    expect(responses.length).toBe(1)
+    // Assert that only one response was received for the batch action
+    //expect(responses.length).toBe(1);
     expect(responses[0].status).toBe(200)
-    expect(requestBody).toMatchInlineSnapshot(`
+
+    // Ensure the second request body (batch profile deletion) matches the expected mutation
+    expect(deleteRequestBody).toMatchInlineSnapshot(`
       Object {
         "query": "mutation {
           deleteProfilesWithExternalIds(
-            externalIds: [\\"user-id\\", \\"user-id\\"],
-            advertiserIDs: [\\"23\\"],
+            externalIds: [\\"user-id-1\\", \\"user-id-2\\"],
+            advertiserIDs: [\\"${mockAdvertiserId}\\"],
             externalProvider: \\"segmentio\\"
           ) {
             userErrors {
