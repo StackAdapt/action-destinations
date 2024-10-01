@@ -4,7 +4,7 @@ import type { Settings } from './generated-types'
 import forwardProfile from './forwardProfile'
 import forwardAudienceEvent from './forwardAudienceEvent'
 import { AdvertiserScopesResponse } from './types'
-import { GQL_ENDPOINT } from './functions'
+import { GQL_ENDPOINT, EXTERNAL_PROVIDER } from './functions'
 
 const destination: DestinationDefinition<Settings> = {
   name: 'StackAdapt Audiences',
@@ -102,7 +102,8 @@ const destination: DestinationDefinition<Settings> = {
     const query = `mutation {
       deleteProfilesWithExternalIds(
         externalIds: ${formattedExternalIds},
-        advertiserIDs: ${formattedAdvertiserIds}
+        advertiserIDs: ${formattedAdvertiserIds},
+        externalProvider: "${EXTERNAL_PROVIDER}"
       ) {
         userErrors {
           message
