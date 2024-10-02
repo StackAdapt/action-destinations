@@ -8,12 +8,7 @@ import { GQL_ENDPOINT, EXTERNAL_PROVIDER } from './functions'
 
 // The onDelete function for handling profile deletions
 const onDelete = async (request: any, payload: any[]) => {
-  //console.log("Payload received:", payload);
   const userId = payload[0].userId ?? payload[0].anonymousId
-  //console.log("userId:", userId);
-  // if (!userId) {
-  //   throw new Error('userId or anonymousId must be provided for profile deletion.')
-  // }
   const TokenQuery = `query TokenInfo {
     tokenInfo {
       scopesByAdvertiser {

@@ -26,13 +26,12 @@ const deleteEventPayload: Partial<SegmentEvent> = {
 
 describe('onDelete action', () => {
   afterEach(() => {
-    nock.cleanAll() // Clean up nock after each test
+    nock.cleanAll()
   })
 
   it('should delete a profile successfully', async () => {
     let deleteRequestBody
 
-    // Mock the Token Query request (first API call)
     nock(gqlHostUrl)
       .post(gqlPath, (body) => {
         return body
@@ -53,10 +52,9 @@ describe('onDelete action', () => {
         }
       })
 
-    // Mock the deleteProfilesWithExternalIds mutation (second API call)
     nock(gqlHostUrl)
       .post(gqlPath, (body) => {
-        deleteRequestBody = body // Capture the second request body
+        deleteRequestBody = body
         return body
       })
       .reply(200, {
@@ -67,9 +65,8 @@ describe('onDelete action', () => {
         }
       })
 
-    // Create a test event with a userId
     const event = createTestEvent({
-      userId: mockUserId, // Ensure userId is passed in the event
+      userId: mockUserId,
       type: 'identify',
       context: {
         personas: {
@@ -80,15 +77,14 @@ describe('onDelete action', () => {
       }
     })
 
-    // Pass the userId via the mapping to ensure it's part of the payload
     const responses = await testDestination.testAction('onDelete', {
       event,
-      useDefaultMappings: true, // This ensures default mapping is applied
+      useDefaultMappings: true,
       mapping: { userId: mockUserId },
       settings: { apiKey: mockGqlKey }
     })
 
-    // Assert that two responses were received
+    // Assert that two responses were received, one for the token query and one for the profile deletion
     expect(responses.length).toBe(2)
 
     // Ensure the second request body (profile deletion) matches the expected mutation
@@ -111,7 +107,6 @@ describe('onDelete action', () => {
   })
 
   it('should throw error if no advertiser ID is found', async () => {
-    // Mock the Token Query response with no advertiser ID
     nock(gqlHostUrl)
       .post(gqlPath)
       .reply(200, {
@@ -137,7 +132,6 @@ describe('onDelete action', () => {
   })
 
   it('should throw error if profile deletion fails', async () => {
-    // Mock the Token Query response
     nock(gqlHostUrl)
       .post(gqlPath)
       .reply(200, {
@@ -182,9 +176,8 @@ describe('onDelete action', () => {
   it('should perform onDelete with a userID and two advertiserIDs from a single token request', async () => {
     let deleteRequestBody
 
-    // Define the event with a valid userId
     const event: Partial<SegmentEvent> = {
-      userId: 'user-id-1', // The user ID for profile deletion
+      userId: 'user-id-1',
       type: 'identify',
       traits: {
         first_time_buyer: true
@@ -198,7 +191,6 @@ describe('onDelete action', () => {
       }
     }
 
-    // Mock the Token Query request (only one request to fetch multiple advertiserIDs)
     nock(gqlHostUrl)
       .post(gqlPath, (body) => {
         return body
@@ -210,12 +202,12 @@ describe('onDelete action', () => {
               nodes: [
                 {
                   advertiser: {
-                    id: 'advertiser-id-1' // First advertiser ID
+                    id: 'advertiser-id-1'
                   }
                 },
                 {
                   advertiser: {
-                    id: 'advertiser-id-2' // Second advertiser ID
+                    id: 'advertiser-id-2'
                   }
                 }
               ]
@@ -224,10 +216,9 @@ describe('onDelete action', () => {
         }
       })
 
-    // Mock the deleteProfilesWithExternalIds mutation
     nock(gqlHostUrl)
       .post(gqlPath, (body) => {
-        deleteRequestBody = body // Capture the mutation request body
+        deleteRequestBody = body
         return body
       })
       .reply(200, {
@@ -238,15 +229,13 @@ describe('onDelete action', () => {
         }
       })
 
-    // Execute the onDelete action with one userId and two advertiserIDs
     const responses = await testDestination.testAction('onDelete', {
-      event, // Pass the event with userId
-      useDefaultMappings: true, // Apply the default mappings for the event
+      event,
+      useDefaultMappings: true,
       mapping: { userId: 'user-id-1' },
       settings: { apiKey: mockGqlKey }
     })
 
-    // Assert that only one response was received for the action
     expect(responses[0].status).toBe(200)
 
     // Ensure the mutation request body contains the correct userId and advertiserIDs
