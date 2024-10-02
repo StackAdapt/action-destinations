@@ -84,7 +84,7 @@ describe('onDelete action', () => {
     const responses = await testDestination.testAction('onDelete', {
       event,
       useDefaultMappings: true, // This ensures default mapping is applied
-      mapping: { userId: mockUserId }, // Ensure mapping passes userId correctly
+      mapping: { userId: mockUserId },
       settings: { apiKey: mockGqlKey }
     })
 
@@ -179,16 +179,26 @@ describe('onDelete action', () => {
     ).rejects.toThrow('Profile deletion was not successful: Deletion failed')
   })
 
-  it('should batch multiple delete profile events into a single request', async () => {
+  it('should perform onDelete with a userID and two advertiserIDs from a single token request', async () => {
     let deleteRequestBody
 
-    // Define two events with valid userIds
-    const events = [
-      createTestEvent({ userId: 'user-id-1' }), // First event with userId-1
-      createTestEvent({ userId: 'user-id-2' }) // Second event with userId-2
-    ]
+    // Define the event with a valid userId
+    const event: Partial<SegmentEvent> = {
+      userId: 'user-id-1', // The user ID for profile deletion
+      type: 'identify',
+      traits: {
+        first_time_buyer: true
+      },
+      context: {
+        personas: {
+          computation_class: 'audience',
+          computation_key: 'first_time_buyer',
+          computation_id: 'aud_123'
+        }
+      }
+    }
 
-    // Mock the Token Query request (first API call)
+    // Mock the Token Query request (only one request to fetch multiple advertiserIDs)
     nock(gqlHostUrl)
       .post(gqlPath, (body) => {
         return body
@@ -200,7 +210,12 @@ describe('onDelete action', () => {
               nodes: [
                 {
                   advertiser: {
-                    id: mockAdvertiserId // Ensure an advertiser ID is returned
+                    id: 'advertiser-id-1' // First advertiser ID
+                  }
+                },
+                {
+                  advertiser: {
+                    id: 'advertiser-id-2' // Second advertiser ID
                   }
                 }
               ]
@@ -209,10 +224,10 @@ describe('onDelete action', () => {
         }
       })
 
-    // Mock the deleteProfilesWithExternalIds mutation (second API call)
+    // Mock the deleteProfilesWithExternalIds mutation
     nock(gqlHostUrl)
       .post(gqlPath, (body) => {
-        deleteRequestBody = body // Capture the second request body
+        deleteRequestBody = body // Capture the mutation request body
         return body
       })
       .reply(200, {
@@ -223,28 +238,29 @@ describe('onDelete action', () => {
         }
       })
 
-    // Execute the batch action
-    const responses = await testDestination.testBatchAction('onDelete', {
-      events, // Pass the array of events with userId values
-      useDefaultMappings: true, // Apply the default mappings for each event
+    // Execute the onDelete action with one userId and two advertiserIDs
+    const responses = await testDestination.testAction('onDelete', {
+      event, // Pass the event with userId
+      useDefaultMappings: true, // Apply the default mappings for the event
+      mapping: { userId: 'user-id-1' },
       settings: { apiKey: mockGqlKey }
     })
 
-    // Assert that only one response was received for the batch action
-    //expect(responses.length).toBe(1);
+    // Assert that only one response was received for the action
     expect(responses[0].status).toBe(200)
 
-    // Ensure the second request body (batch profile deletion) matches the expected mutation
+    // Ensure the mutation request body contains the correct userId and advertiserIDs
     expect(deleteRequestBody).toMatchInlineSnapshot(`
       Object {
         "query": "mutation {
           deleteProfilesWithExternalIds(
-            externalIds: [\\"user-id-1\\", \\"user-id-2\\"],
-            advertiserIDs: [\\"${mockAdvertiserId}\\"],
+            externalIds: [\\"user-id-1\\"],
+            advertiserIDs: [\\"advertiser-id-1\\", \\"advertiser-id-2\\"],
             externalProvider: \\"segmentio\\"
           ) {
             userErrors {
               message
+              path
             }
           }
         }",
