@@ -57,6 +57,29 @@ const mockDeleteProfilesMutation = (
       }
     })
 }
+// helper for expected delete profiles mutation
+const expectDeleteProfilesMutation = (
+  deleteRequestBody: { body?: any },
+  expectedExternalIds: string[],
+  expectedAdvertiserIds: string[]
+) => {
+  expect(deleteRequestBody.body).toMatchInlineSnapshot(`
+    Object {
+      "query": "mutation {
+          deleteProfilesWithExternalIds(
+            externalIds: [\\"${expectedExternalIds.join('\\", \\"')}\\"],
+            advertiserIDs: [\\"${expectedAdvertiserIds.join('\\", \\"')}\\"],
+            externalProvider: \\"segmentio\\"
+          ) {
+            userErrors {
+              message
+              path
+            }
+          }
+        }",
+    }
+  `)
+}
 
 describe('onDelete action', () => {
   afterEach(() => {
@@ -89,22 +112,7 @@ describe('onDelete action', () => {
     })
 
     expect(responses.length).toBe(2)
-    expect(deleteRequestBody.body).toMatchInlineSnapshot(`
-      Object {
-        "query": "mutation {
-            deleteProfilesWithExternalIds(
-              externalIds: [\\"user-id\\"],
-              advertiserIDs: [\\"23\\"],
-              externalProvider: \\"segmentio\\"
-            ) {
-              userErrors {
-                message
-                path
-              }
-            }
-          }",
-      }
-    `)
+    expectDeleteProfilesMutation(deleteRequestBody, ['user-id'], ['23'])
   })
 
   it('should throw error if no advertiser ID is found', async () => {
@@ -169,21 +177,6 @@ describe('onDelete action', () => {
     })
 
     expect(responses[0].status).toBe(200)
-    expect(deleteRequestBody.body).toMatchInlineSnapshot(`
-      Object {
-        "query": "mutation {
-            deleteProfilesWithExternalIds(
-              externalIds: [\\"user-id-1\\"],
-              advertiserIDs: [\\"advertiser-id-1\\", \\"advertiser-id-2\\"],
-              externalProvider: \\"segmentio\\"
-            ) {
-              userErrors {
-                message
-                path
-              }
-            }
-          }",
-      }
-    `)
+    expectDeleteProfilesMutation(deleteRequestBody, ['user-id-1'], ['advertiser-id-1', 'advertiser-id-2'])
   })
 })
