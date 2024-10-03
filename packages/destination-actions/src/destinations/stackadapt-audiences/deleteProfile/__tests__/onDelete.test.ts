@@ -24,46 +24,50 @@ const deleteEventPayload: Partial<SegmentEvent> = {
   }
 }
 
+// Helper function to mock the token query response
+const mockTokenQueryResponse = (nodes: Array<{ advertiser: { id: string } }>) => {
+  nock(gqlHostUrl)
+    .post(gqlPath)
+    .reply(200, {
+      data: {
+        tokenInfo: {
+          scopesByAdvertiser: {
+            nodes: nodes
+          }
+        }
+      }
+    })
+}
+
+// Helper function to mock the profile deletion mutation
+const mockDeleteProfilesMutation = (
+  deleteRequestBodyRef: { body?: any },
+  userErrors: Array<{ message: string }> = []
+) => {
+  nock(gqlHostUrl)
+    .post(gqlPath, (body) => {
+      deleteRequestBodyRef.body = body
+      return body
+    })
+    .reply(200, {
+      data: {
+        deleteProfilesWithExternalIds: {
+          userErrors: userErrors
+        }
+      }
+    })
+}
+
 describe('onDelete action', () => {
   afterEach(() => {
     nock.cleanAll()
   })
 
   it('should delete a profile successfully', async () => {
-    let deleteRequestBody
+    const deleteRequestBody: { body?: any } = {}
 
-    nock(gqlHostUrl)
-      .post(gqlPath, (body) => {
-        return body
-      })
-      .reply(200, {
-        data: {
-          tokenInfo: {
-            scopesByAdvertiser: {
-              nodes: [
-                {
-                  advertiser: {
-                    id: mockAdvertiserId
-                  }
-                }
-              ]
-            }
-          }
-        }
-      })
-
-    nock(gqlHostUrl)
-      .post(gqlPath, (body) => {
-        deleteRequestBody = body
-        return body
-      })
-      .reply(200, {
-        data: {
-          deleteProfilesWithExternalIds: {
-            userErrors: []
-          }
-        }
-      })
+    mockTokenQueryResponse([{ advertiser: { id: mockAdvertiserId } }])
+    mockDeleteProfilesMutation(deleteRequestBody)
 
     const event = createTestEvent({
       userId: mockUserId,
@@ -84,11 +88,8 @@ describe('onDelete action', () => {
       settings: { apiKey: mockGqlKey }
     })
 
-    // Assert that two responses were received, one for the token query and one for the profile deletion
     expect(responses.length).toBe(2)
-
-    // Ensure the second request body (profile deletion) matches the expected mutation
-    expect(deleteRequestBody).toMatchInlineSnapshot(`
+    expect(deleteRequestBody.body).toMatchInlineSnapshot(`
       Object {
         "query": "mutation {
             deleteProfilesWithExternalIds(
@@ -107,17 +108,7 @@ describe('onDelete action', () => {
   })
 
   it('should throw error if no advertiser ID is found', async () => {
-    nock(gqlHostUrl)
-      .post(gqlPath)
-      .reply(200, {
-        data: {
-          tokenInfo: {
-            scopesByAdvertiser: {
-              nodes: []
-            }
-          }
-        }
-      })
+    mockTokenQueryResponse([]) // Pass an empty array to mock no advertiser IDs
 
     const event = createTestEvent(deleteEventPayload)
 
@@ -132,34 +123,10 @@ describe('onDelete action', () => {
   })
 
   it('should throw error if profile deletion fails', async () => {
-    nock(gqlHostUrl)
-      .post(gqlPath)
-      .reply(200, {
-        data: {
-          tokenInfo: {
-            scopesByAdvertiser: {
-              nodes: [
-                {
-                  advertiser: {
-                    id: mockAdvertiserId
-                  }
-                }
-              ]
-            }
-          }
-        }
-      })
+    const deleteRequestBody: { body?: any } = {}
 
-    // Mock the deleteProfilesWithExternalIds mutation with an error
-    nock(gqlHostUrl)
-      .post(gqlPath)
-      .reply(200, {
-        data: {
-          deleteProfilesWithExternalIds: {
-            userErrors: [{ message: 'Deletion failed' }]
-          }
-        }
-      })
+    mockTokenQueryResponse([{ advertiser: { id: mockAdvertiserId } }])
+    mockDeleteProfilesMutation(deleteRequestBody, [{ message: 'Deletion failed' }])
 
     const event = createTestEvent(deleteEventPayload)
 
@@ -174,7 +141,7 @@ describe('onDelete action', () => {
   })
 
   it('should perform onDelete with a userID and two advertiserIDs from a single token request', async () => {
-    let deleteRequestBody
+    const deleteRequestBody: { body?: any } = {}
 
     const event: Partial<SegmentEvent> = {
       userId: 'user-id-1',
@@ -191,43 +158,8 @@ describe('onDelete action', () => {
       }
     }
 
-    nock(gqlHostUrl)
-      .post(gqlPath, (body) => {
-        return body
-      })
-      .reply(200, {
-        data: {
-          tokenInfo: {
-            scopesByAdvertiser: {
-              nodes: [
-                {
-                  advertiser: {
-                    id: 'advertiser-id-1'
-                  }
-                },
-                {
-                  advertiser: {
-                    id: 'advertiser-id-2'
-                  }
-                }
-              ]
-            }
-          }
-        }
-      })
-
-    nock(gqlHostUrl)
-      .post(gqlPath, (body) => {
-        deleteRequestBody = body
-        return body
-      })
-      .reply(200, {
-        data: {
-          deleteProfilesWithExternalIds: {
-            userErrors: []
-          }
-        }
-      })
+    mockTokenQueryResponse([{ advertiser: { id: 'advertiser-id-1' } }, { advertiser: { id: 'advertiser-id-2' } }])
+    mockDeleteProfilesMutation(deleteRequestBody)
 
     const responses = await testDestination.testAction('onDelete', {
       event,
@@ -237,9 +169,7 @@ describe('onDelete action', () => {
     })
 
     expect(responses[0].status).toBe(200)
-
-    // Ensure the mutation request body contains the correct userId and advertiserIDs
-    expect(deleteRequestBody).toMatchInlineSnapshot(`
+    expect(deleteRequestBody.body).toMatchInlineSnapshot(`
       Object {
         "query": "mutation {
             deleteProfilesWithExternalIds(
