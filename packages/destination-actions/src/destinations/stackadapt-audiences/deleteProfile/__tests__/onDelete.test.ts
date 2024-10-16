@@ -73,7 +73,6 @@ const expectDeleteProfilesMutation = (
           ) {
             userErrors {
               message
-              path
             }
           }
         }",

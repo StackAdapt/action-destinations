@@ -13,15 +13,9 @@ const action: ActionDefinition<Settings, Payload> = {
       type: 'string',
       required: false
     },
-    anonymousId: {
-      label: 'Anonymous ID',
-      description: 'The anonymous ID to delete.',
-      type: 'string',
-      required: false
-    },
     advertiserId: {
       label: 'Advertiser IDs',
-      description: 'Comma-separated list of advertiser IDs. If not provided, it will query the token info.',
+      description: 'Comma-separated list of advertiser IDs to delete.',
       type: 'string',
       required: false
     },
