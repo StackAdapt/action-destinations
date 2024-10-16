@@ -61,7 +61,8 @@ const mockDeleteProfilesMutation = (
 const expectDeleteProfilesMutation = (
   deleteRequestBody: { body?: any },
   expectedExternalIds: string[],
-  expectedAdvertiserIds: string[]
+  expectedAdvertiserIds: string[],
+  expectedSyncIds: string[]
 ) => {
   expect(deleteRequestBody.body).toMatchInlineSnapshot(`
     Object {
@@ -70,6 +71,7 @@ const expectDeleteProfilesMutation = (
             externalIds: [\\"${expectedExternalIds.join('\\", \\"')}\\"],
             advertiserIDs: [\\"${expectedAdvertiserIds.join('\\", \\"')}\\"],
             externalProvider: \\"segmentio\\"
+            syncIds: [\\"${expectedSyncIds.join('\\", \\"')}\\"]
           ) {
             userErrors {
               message
@@ -111,7 +113,12 @@ describe('onDelete action', () => {
     })
 
     expect(responses.length).toBe(2)
-    expectDeleteProfilesMutation(deleteRequestBody, ['user-id'], ['23'])
+    expectDeleteProfilesMutation(
+      deleteRequestBody,
+      ['user-id'],
+      ['23'],
+      ['535fa30d7e25dd8a49f1536779734ec8286108d115da5045d77f3b4185d8f790']
+    )
   })
 
   it('should throw error if no advertiser ID is found', async () => {
@@ -176,6 +183,14 @@ describe('onDelete action', () => {
     })
 
     expect(responses[0].status).toBe(200)
-    expectDeleteProfilesMutation(deleteRequestBody, ['user-id-1'], ['advertiser-id-1', 'advertiser-id-2'])
+    expectDeleteProfilesMutation(
+      deleteRequestBody,
+      ['user-id-1'],
+      ['advertiser-id-1', 'advertiser-id-2'],
+      [
+        '31d3b9fd3e110a9176fe531198a0919bb0c2cc2b2cb8ab30d5c0be828484b3ab',
+        '73bbfb267bda07c40e27150ccd24990065e05117ecb122660aca33a0399214da'
+      ]
+    )
   })
 })
