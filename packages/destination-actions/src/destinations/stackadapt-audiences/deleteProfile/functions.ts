@@ -1,4 +1,4 @@
-import { GQL_ENDPOINT, EXTERNAL_PROVIDER } from '../functions'
+import { GQL_ENDPOINT, EXTERNAL_PROVIDER, sha256hash } from '../functions'
 import { Payload } from './generated-types'
 
 class IntegrationError extends Error {
@@ -45,11 +45,16 @@ export async function onDelete(request: any, payload: Payload[]) {
     const formattedExternalIds = `["${userId}"]`
     const formattedAdvertiserIds = `[${advertiserIds.map((id: string) => `"${id}"`).join(', ')}]`
 
+    // hashing to get syncIds
+    const syncIds = advertiserIds.map((id: string) => sha256hash(id))
+    const formattedSyncIds = `[${syncIds.map((syncId: string) => `"${syncId}"`).join(', ')}]`
+
     const query = `mutation {
       deleteProfilesWithExternalIds(
         externalIds: ${formattedExternalIds},
         advertiserIDs: ${formattedAdvertiserIds},
         externalProvider: "${EXTERNAL_PROVIDER}"
+        syncIds: ${formattedSyncIds}
       ) {
         userErrors {
           message
