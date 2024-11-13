@@ -5,7 +5,7 @@ import { Payload } from './generated-types'
 
 const action: ActionDefinition<Settings, Payload> = {
   title: 'Delete Profiles',
-  description: 'Deletes a profile by userId or anonymousId and advertiser IDs.',
+  description: 'Deletes a profile by userId and advertiser IDs.',
   fields: {
     userId: {
       label: 'User ID',
@@ -28,10 +28,6 @@ const action: ActionDefinition<Settings, Payload> = {
   },
   perform: async (request, { payload }) => {
     // For single profile deletion
-    return await onDelete(request, [payload])
-  },
-  performBatch: async (request, { payload }) => {
-    // For batch profile deletion
     return await onDelete(request, payload)
   }
 }

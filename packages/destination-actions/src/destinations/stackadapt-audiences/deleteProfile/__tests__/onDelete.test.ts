@@ -9,8 +9,6 @@ const mockGqlKey = 'test-graphql-key'
 const gqlHostUrl = 'https://api.stackadapt.com'
 const gqlPath = '/graphql'
 const mockUserId = 'user-id'
-const mockAdvertiserId = '23'
-const mockMappings = { advertiser_id: mockAdvertiserId }
 
 const deleteEventPayload: Partial<SegmentEvent> = {
   userId: mockUserId,
@@ -22,21 +20,6 @@ const deleteEventPayload: Partial<SegmentEvent> = {
       computation_id: 'aud_123'
     }
   }
-}
-
-// Helper function to mock the token query response
-const mockTokenQueryResponse = (nodes: Array<{ advertiser: { id: string } }>) => {
-  nock(gqlHostUrl)
-    .post(gqlPath)
-    .reply(200, {
-      data: {
-        tokenInfo: {
-          scopesByAdvertiser: {
-            nodes: nodes
-          }
-        }
-      }
-    })
 }
 
 // Helper function to mock the profile deletion mutation
@@ -57,11 +40,11 @@ const mockDeleteProfilesMutation = (
       }
     })
 }
-// helper for expected delete profiles mutation
+
+// Helper function to assert the mutation request body without advertiser IDs or batch handling
 const expectDeleteProfilesMutation = (
   deleteRequestBody: { body?: any },
   expectedExternalIds: string[],
-  expectedAdvertiserIds: string[],
   expectedSyncIds: string[]
 ) => {
   expect(deleteRequestBody.body).toMatchInlineSnapshot(`
@@ -69,12 +52,12 @@ const expectDeleteProfilesMutation = (
       "query": "mutation {
           deleteProfilesWithExternalIds(
             externalIds: [\\"${expectedExternalIds.join('\\", \\"')}\\"],
-            advertiserIDs: [\\"${expectedAdvertiserIds.join('\\", \\"')}\\"],
             externalProvider: \\"segmentio\\"
             syncIds: [\\"${expectedSyncIds.join('\\", \\"')}\\"]
           ) {
             userErrors {
               message
+              path
             }
           }
         }",
@@ -90,7 +73,6 @@ describe('onDelete action', () => {
   it('should delete a profile successfully', async () => {
     const deleteRequestBody: { body?: any } = {}
 
-    mockTokenQueryResponse([{ advertiser: { id: mockAdvertiserId } }])
     mockDeleteProfilesMutation(deleteRequestBody)
 
     const event = createTestEvent({
@@ -112,34 +94,17 @@ describe('onDelete action', () => {
       settings: { apiKey: mockGqlKey }
     })
 
-    expect(responses.length).toBe(2)
+    expect(responses.length).toBe(1)
     expectDeleteProfilesMutation(
       deleteRequestBody,
       ['user-id'],
-      ['23'],
-      ['535fa30d7e25dd8a49f1536779734ec8286108d115da5045d77f3b4185d8f790']
+      ['a7571ddec1df43045ac667d7c976bd1149fe9a2dbb3fb55357beed582e11538d']
     )
-  })
-
-  it('should throw error if no advertiser ID is found', async () => {
-    mockTokenQueryResponse([]) // Pass an empty array to mock no advertiser IDs
-
-    const event = createTestEvent(deleteEventPayload)
-
-    await expect(
-      testDestination.testAction('onDelete', {
-        event,
-        useDefaultMappings: true,
-        mapping: mockMappings,
-        settings: { apiKey: mockGqlKey }
-      })
-    ).rejects.toThrow('No advertiser ID found.')
   })
 
   it('should throw error if profile deletion fails', async () => {
     const deleteRequestBody: { body?: any } = {}
 
-    mockTokenQueryResponse([{ advertiser: { id: mockAdvertiserId } }])
     mockDeleteProfilesMutation(deleteRequestBody, [{ message: 'Deletion failed' }])
 
     const event = createTestEvent(deleteEventPayload)
@@ -148,49 +113,9 @@ describe('onDelete action', () => {
       testDestination.testAction('onDelete', {
         event,
         useDefaultMappings: true,
-        mapping: mockMappings,
+        mapping: { userId: mockUserId },
         settings: { apiKey: mockGqlKey }
       })
     ).rejects.toThrow('Profile deletion was not successful: Deletion failed')
-  })
-
-  it('should perform onDelete with a userID and two advertiserIDs from a single token request', async () => {
-    const deleteRequestBody: { body?: any } = {}
-
-    const event: Partial<SegmentEvent> = {
-      userId: 'user-id-1',
-      type: 'identify',
-      traits: {
-        first_time_buyer: true
-      },
-      context: {
-        personas: {
-          computation_class: 'audience',
-          computation_key: 'first_time_buyer',
-          computation_id: 'aud_123'
-        }
-      }
-    }
-
-    mockTokenQueryResponse([{ advertiser: { id: 'advertiser-id-1' } }, { advertiser: { id: 'advertiser-id-2' } }])
-    mockDeleteProfilesMutation(deleteRequestBody)
-
-    const responses = await testDestination.testAction('onDelete', {
-      event,
-      useDefaultMappings: true,
-      mapping: { userId: 'user-id-1' },
-      settings: { apiKey: mockGqlKey }
-    })
-
-    expect(responses[0].status).toBe(200)
-    expectDeleteProfilesMutation(
-      deleteRequestBody,
-      ['user-id-1'],
-      ['advertiser-id-1', 'advertiser-id-2'],
-      [
-        '31d3b9fd3e110a9176fe531198a0919bb0c2cc2b2cb8ab30d5c0be828484b3ab',
-        '73bbfb267bda07c40e27150ccd24990065e05117ecb122660aca33a0399214da'
-      ]
-    )
   })
 })
