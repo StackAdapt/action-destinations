@@ -3,9 +3,8 @@ import type { Settings } from './generated-types'
 
 import forwardProfile from './forwardProfile'
 import forwardAudienceEvent from './forwardAudienceEvent'
-import onDelete from './deleteProfile'
 import { AdvertiserScopesResponse } from './types'
-import { GQL_ENDPOINT } from './functions'
+import { GQL_ENDPOINT, EXTERNAL_PROVIDER, sha256hash } from './functions'
 
 const destination: DestinationDefinition<Settings> = {
   name: 'StackAdapt Audiences',
@@ -51,6 +50,7 @@ const destination: DestinationDefinition<Settings> = {
       }
     }
   },
+
   extendRequest: ({ settings }) => {
     return {
       method: 'POST',
@@ -60,10 +60,55 @@ const destination: DestinationDefinition<Settings> = {
       }
     }
   },
+
+  onDelete: async (request, { payload }) => {
+    const userId = payload.userId
+    const formattedExternalIds = `["${userId}"]`
+
+    const syncIds = [sha256hash(String(userId))]
+    const formattedSyncIds = `[${syncIds.map((syncId: string) => `"${syncId}"`).join(', ')}]`
+
+    const mutation = `mutation {
+      deleteProfilesWithExternalIds(
+        externalIds: ${formattedExternalIds},
+        externalProvider: "${EXTERNAL_PROVIDER}",
+        syncIds: ${formattedSyncIds}
+      ) {
+        userErrors {
+          message
+          path
+        }
+      }
+    }`
+
+    try {
+      const response = await request(GQL_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: mutation })
+      })
+
+      const result = await response.json()
+
+      if (result.data.deleteProfilesWithExternalIds.userErrors.length > 0) {
+        const errorMessages = result.data.deleteProfilesWithExternalIds.userErrors.map((e: any) => e.message).join(', ')
+        throw new Error(`Profile deletion was not successful: ${errorMessages}`)
+      }
+
+      return result
+    } catch (error) {
+      console.error('Error in onDelete action:', error)
+      if (error instanceof Error) {
+        throw new Error(`Failed to execute onDelete action: ${error.message}`)
+      } else {
+        throw new Error(`Failed to execute onDelete action: ${String(error)}`)
+      }
+    }
+  },
+
   actions: {
     forwardProfile,
-    forwardAudienceEvent,
-    onDelete
+    forwardAudienceEvent
   }
 }
 
