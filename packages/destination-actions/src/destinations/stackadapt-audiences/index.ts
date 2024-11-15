@@ -65,14 +65,13 @@ const destination: DestinationDefinition<Settings> = {
     const userId = payload.userId
     const formattedExternalIds = `["${userId}"]`
 
-    const syncIds = [sha256hash(String(userId))]
-    const formattedSyncIds = `[${syncIds.map((syncId: string) => `"${syncId}"`).join(', ')}]`
+    const syncId = [sha256hash(String(userId))]
 
     const mutation = `mutation {
       deleteProfilesWithExternalIds(
         externalIds: ${formattedExternalIds},
         externalProvider: "${EXTERNAL_PROVIDER}",
-        syncIds: ${formattedSyncIds}
+        syncIds: ${syncId}
       ) {
         userErrors {
           message
