@@ -141,37 +141,3 @@ Object {
     }",
 }
 `;
-
-exports[`Testing snapshot for actions-stackadapt-audiences destination: onDelete action - all fields 1`] = `
-Object {
-  "query": "mutation {
-      deleteProfilesWithExternalIds(
-        externalIds: [\\"(F)XRhRHvkT\\"],
-        externalProvider: \\"segmentio\\"
-        syncIds: [\\"0c7a26e7c220c5c8abb739febf5b8ab9263490f3a87873d3935a9f5e6f43bc71\\"]
-      ) {
-        userErrors {
-          message
-          path
-        }
-      }
-    }",
-}
-`;
-
-exports[`Testing snapshot for actions-stackadapt-audiences destination: onDelete action - required fields 1`] = `
-Object {
-  "query": "mutation {
-      deleteProfilesWithExternalIds(
-        externalIds: [\\"undefined\\"],
-        externalProvider: \\"segmentio\\"
-        syncIds: [\\"eb045d78d273107348b0300c01d29b7552d622abbc6faf81b3ec55359aa9950c\\"]
-      ) {
-        userErrors {
-          message
-          path
-        }
-      }
-    }",
-}
-`;
