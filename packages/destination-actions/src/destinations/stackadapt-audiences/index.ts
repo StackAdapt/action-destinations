@@ -71,7 +71,7 @@ const destination: DestinationDefinition<Settings> = {
       deleteProfilesWithExternalIds(
         externalIds: ${formattedExternalIds},
         externalProvider: "${EXTERNAL_PROVIDER}",
-        syncIds: ${syncId}
+        syncIds: "${syncId}"
       ) {
         userErrors {
           message
