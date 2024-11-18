@@ -1,4 +1,5 @@
 import type { DestinationDefinition } from '@segment/actions-core'
+import { IntegrationError } from '@segment/actions-core'
 import type { Settings } from './generated-types'
 
 import forwardProfile from './forwardProfile'
@@ -65,7 +66,7 @@ const destination: DestinationDefinition<Settings> = {
     const userId = payload.userId
     const formattedExternalIds = `["${userId}"]`
 
-    const syncId = [sha256hash(String(userId))]
+    const syncId = sha256hash(String(userId))
 
     const mutation = `mutation {
       deleteProfilesWithExternalIds(
@@ -91,17 +92,19 @@ const destination: DestinationDefinition<Settings> = {
 
       if (result.data.deleteProfilesWithExternalIds.userErrors.length > 0) {
         const errorMessages = result.data.deleteProfilesWithExternalIds.userErrors.map((e: any) => e.message).join(', ')
-        throw new Error(`Profile deletion was not successful: ${errorMessages}`)
+        throw new IntegrationError(`Profile deletion was not successful: ${errorMessages}`, 'DELETE_FAILED', 400)
       }
 
       return result
     } catch (error) {
-      console.error('Error in onDelete action:', error)
-      if (error instanceof Error) {
-        throw new Error(`Failed to execute onDelete action: ${error.message}`)
-      } else {
-        throw new Error(`Failed to execute onDelete action: ${String(error)}`)
+      if (error instanceof IntegrationError) {
+        throw error
       }
+      throw new IntegrationError(
+        `Unexpected error occurred in onDelete: ${error instanceof Error ? error.message : String(error)}`,
+        'UNKNOWN_ERROR',
+        400
+      )
     }
   },
 
