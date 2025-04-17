@@ -6,14 +6,14 @@ const EXTERNAL_PROVIDER = 'segmentio'
 
 const audienceMapping = stringifyJsonWithEscapedQuotes([
   {
-    incoming_key: 'audienceId',
-    destination_key: 'external_id',
+    incomingKey: 'audienceId',
+    destinationKey: 'external_id',
     type: 'string',
     label: 'External Audience ID'
   },
   {
-    incoming_key: 'audienceName',
-    destination_key: 'name',
+    incomingKey: 'audienceName',
+    destinationKey: 'name',
     type: 'string',
     label: 'External Audience Name'
   }
@@ -21,10 +21,10 @@ const audienceMapping = stringifyJsonWithEscapedQuotes([
 
 const profileMapping = stringifyJsonWithEscapedQuotes([
   {
-    incoming_key: 'userId',
-    destination_key: 'external_id',
+    incomingKey: 'userId',
+    destinationKey: 'external_id',
     type: 'string',
-    is_pii: false,
+    isPii: false,
     label: 'External Profile ID'
   }
 ])
@@ -60,7 +60,7 @@ export async function performForwardAudienceEvents(request: RequestClient, event
       upsertProfileMapping(
         input: {
           advertiserId: ${advertiserId},
-          mappingSchema: "${profileMapping}",
+          mappingSchemaV2: ${profileMapping},
           mappableType: "${EXTERNAL_PROVIDER}",
         }
       ) {
