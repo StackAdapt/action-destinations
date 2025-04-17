@@ -2,14 +2,15 @@ import { RequestClient } from '@segment/actions-core'
 import { DynamicFieldResponse } from '@segment/actions-core'
 import { Payload } from './generated-types'
 import {
-  GET_TEMPLATES_URL,
+  getTemplatesURL,
   TRUNCATE_CHAR_LENGTH,
-  GET_IP_POOLS_URL,
-  GET_VALID_DOMAINS_URL,
-  GET_GROUP_IDS_URL,
-  GET_TEMPLATE_CONTENT_URL
+  getIPPoolsURL,
+  getValidDomainsURL,
+  getGroupIDsURL,
+  getTemplateContentURL
 } from './constants'
 import { parseTemplateId } from './utils'
+import type { Settings } from '../generated-types'
 
 interface ResultError {
   response: {
@@ -22,7 +23,59 @@ interface ResultError {
   }
 }
 
-export async function dynamicTemplateData(request: RequestClient, payload: Payload): Promise<DynamicFieldResponse> {
+interface ErrorResponse {
+  choices: never[]
+  error: {
+    message: string
+    code: string
+  }
+}
+
+function createErrorResponse(message?: string, code?: string): ErrorResponse {
+  return {
+    choices: [],
+    error: { message: message ?? 'Unknown error', code: code ?? '404' }
+  }
+}
+
+export function extractVariables(content: string | undefined): string[] {
+  if (!content) {
+    return []
+  }
+
+  const removeIfStartsWith = ['if', 'unless', 'and', 'or', 'equals', 'notEquals', 'lessThan', 'greaterThan', 'each']
+  const removeIfMatch = ['else', 'if', 'this', 'insert', 'default', 'length', 'formatDate']
+
+  const regex1 = /{{(.*?)}}/g // matches handlebar expressions. e.g. {{root.user.username | default: "Unknown"}}
+  const regex2 = /(["']).*?\1/g // removes anything between quotes. e.g. {{root.user.username | default: }}
+  const regex3 = /[#/]?[\w.]+/g // matches words only. e.g. root.user.username , default
+
+  const words =
+    [...new Set([...content.matchAll(regex1)].map((match) => match[1]))]
+      .map((word) => word.replace(regex2, '').trim())
+      .join(' ')
+      .match(regex3) ?? []
+
+  const variables = [
+    ...new Set(
+      words
+        .filter((w) => !removeIfMatch.some((item) => w.startsWith(item))) // remove words that start with any of the items in removeIfMatch
+        .filter((w) => !removeIfStartsWith.some((item) => w.startsWith(`#${item}`) || w.startsWith(`/${item}`))) // remove words that start with any of the items in removeIfStartsWith
+        .map((item) => (item.startsWith('root.') ? item.slice(5).trim() : item)) // remove root. from the start of the word
+        .map((item) => item.split('.')[0]) // remove everything after the first dot. for example: user.username -> user
+        .filter((item) => !item.includes('"')) // remove if word contains " (double quotes) as this implies it is a constant / string and not a variable
+        .filter((item) => isNaN(Number(item))) // remove numeric values
+    )
+  ]
+
+  return variables
+}
+
+export async function dynamicTemplateData(
+  request: RequestClient,
+  payload: Payload,
+  settings: Settings
+): Promise<DynamicFieldResponse> {
   interface ResultItem {
     id: string
     template_id: string
@@ -49,44 +102,41 @@ export async function dynamicTemplateData(request: RequestClient, payload: Paylo
   }
 
   if (!payload.template_id) {
-    throw new Error('Template ID Field required before Dynamic Template Data fields can be configured')
+    return createErrorResponse('Template ID Field required before Dynamic Template Data fields can be configured')
   }
 
   const templateId = parseTemplateId(payload.template_id ?? '')
 
   if (templateId == null || !templateId.startsWith('d-')) {
-    throw new Error('Template must refer to a Dynamic Template. Dynamic Template IDs start with "d-"')
+    return createErrorResponse('Template must refer to a Dynamic Template. Dynamic Template IDs start with "d-"')
   }
 
   try {
-    const response: ResponseType = await request(`${GET_TEMPLATE_CONTENT_URL}${templateId}`, {
+    const response: ResponseType = await request(getTemplateContentURL(settings, templateId), {
       method: 'GET',
       skipResponseCloning: true
     })
 
     if (response.data.generation !== 'dynamic') {
-      throw new Error('Template ID provided is not a dynamic template')
+      return createErrorResponse('Template ID provided is not a dynamic template')
     }
 
     const version = response.data.versions.find((version: ResultItem) => version.active === 1)
 
     if (!version) {
-      throw new Error('No active version found for the provided template')
+      return createErrorResponse('No active version found for the provided template')
     }
 
     if (!version.html_content || version.html_content.length === 0) {
-      throw new Error('Returned template has no content')
+      return createErrorResponse('Returned template has no content')
     }
-
-    const extractTokens = (content: string | undefined): string[] =>
-      [...(content ?? '').matchAll(/{{{?(\w+)}{0,3}}}/g)].map((match) => match[1])
 
     const uniqueTokens: string[] = [
       ...new Set([
-        ...extractTokens(version.html_content),
-        ...extractTokens(version.plain_content),
-        ...extractTokens(version.subject),
-        ...extractTokens(version.thumbnail_url)
+        ...extractVariables(version.html_content),
+        ...extractVariables(version.plain_content),
+        ...extractVariables(version.subject),
+        ...extractVariables(version.thumbnail_url)
       ])
     ]
 
@@ -96,7 +146,7 @@ export async function dynamicTemplateData(request: RequestClient, payload: Paylo
     const filteredTokens: string[] = uniqueTokens.filter((token) => !selectedTokens.includes(token))
 
     if (filteredTokens.length === 0) {
-      throw new Error('No dynamic fields found in the provided template')
+      return createErrorResponse('No dynamic fields found in the provided template')
     }
 
     return {
@@ -109,17 +159,11 @@ export async function dynamicTemplateData(request: RequestClient, payload: Paylo
     }
   } catch (err) {
     const error = err as ResultError
-    return {
-      choices: [],
-      error: {
-        message: error.data.error ?? 'Unknown error: dynamicTemplateData',
-        code: '404'
-      }
-    }
+    return createErrorResponse(error?.data?.error ?? 'Unknown error: dynamicTemplateData')
   }
 }
 
-export async function dynamicGroupId(request: RequestClient): Promise<DynamicFieldResponse> {
+export async function dynamicGroupId(request: RequestClient, settings: Settings): Promise<DynamicFieldResponse> {
   interface ResultItem {
     id: string
     name: string
@@ -131,7 +175,7 @@ export async function dynamicGroupId(request: RequestClient): Promise<DynamicFie
   }
 
   try {
-    const response: ResponseType = await request(GET_GROUP_IDS_URL, {
+    const response: ResponseType = await request(getGroupIDsURL(settings), {
       method: 'GET',
       skipResponseCloning: true
     })
@@ -147,19 +191,14 @@ export async function dynamicGroupId(request: RequestClient): Promise<DynamicFie
   } catch (err) {
     const error = err as ResultError
     const code = String(error?.response?.status ?? 500)
-
-    return {
-      choices: [],
-      error: {
-        message:
-          error?.response?.data?.errors.map((error) => error.message).join(';') ?? 'Unknown error: dynamicGroupId',
-        code: code
-      }
-    }
+    return createErrorResponse(
+      error?.response?.data?.errors.map((error) => error.message).join(';') ?? 'Unknown error: dynamicGroupId',
+      code
+    )
   }
 }
 
-export async function dynamicDomain(request: RequestClient): Promise<DynamicFieldResponse> {
+export async function dynamicDomain(request: RequestClient, settings: Settings): Promise<DynamicFieldResponse> {
   interface ResultItem {
     id: string
     subdomain?: string
@@ -173,7 +212,7 @@ export async function dynamicDomain(request: RequestClient): Promise<DynamicFiel
   }
 
   try {
-    const response: ResponseType = await request(GET_VALID_DOMAINS_URL, {
+    const response: ResponseType = await request(getValidDomainsURL(settings), {
       method: 'GET',
       skipResponseCloning: true
     })
@@ -191,19 +230,14 @@ export async function dynamicDomain(request: RequestClient): Promise<DynamicFiel
   } catch (err) {
     const error = err as ResultError
     const code = String(error?.response?.status ?? 500)
-
-    return {
-      choices: [],
-      error: {
-        message:
-          error?.response?.data?.errors.map((error) => error.message).join(';') ?? 'Unknown error: dynamicDomain',
-        code: code
-      }
-    }
+    return createErrorResponse(
+      error?.response?.data?.errors.map((error) => error.message).join(';') ?? 'Unknown error: dynamicDomain',
+      code
+    )
   }
 }
 
-export async function dynamicTemplateId(request: RequestClient): Promise<DynamicFieldResponse> {
+export async function dynamicTemplateId(request: RequestClient, settings: Settings): Promise<DynamicFieldResponse> {
   interface ResultItem {
     id: string
     name: string
@@ -226,7 +260,7 @@ export async function dynamicTemplateId(request: RequestClient): Promise<Dynamic
   }
 
   try {
-    const response: ResponseType = await request(GET_TEMPLATES_URL, {
+    const response: ResponseType = await request(getTemplatesURL(settings), {
       method: 'GET',
       skipResponseCloning: true
     })
@@ -258,19 +292,14 @@ export async function dynamicTemplateId(request: RequestClient): Promise<Dynamic
   } catch (err) {
     const error = err as ResultError
     const code = String(error?.response?.status ?? 500)
-
-    return {
-      choices: [],
-      error: {
-        message:
-          error?.response?.data?.errors.map((error) => error.message).join(';') ?? 'Unknown error: dynamicGetTemplates',
-        code: code
-      }
-    }
+    return createErrorResponse(
+      error?.response?.data?.errors.map((error) => error.message).join(';') ?? 'Unknown error: dynamicGetTemplates',
+      code
+    )
   }
 }
 
-export async function dynamicIpPoolNames(request: RequestClient): Promise<DynamicFieldResponse> {
+export async function dynamicIpPoolNames(request: RequestClient, settings: Settings): Promise<DynamicFieldResponse> {
   interface ResponseType {
     data: ResultItem[]
   }
@@ -280,7 +309,7 @@ export async function dynamicIpPoolNames(request: RequestClient): Promise<Dynami
   }
 
   try {
-    const response: ResponseType = await request(GET_IP_POOLS_URL, {
+    const response: ResponseType = await request(getIPPoolsURL(settings), {
       method: 'GET',
       skipResponseCloning: true
     })
@@ -296,14 +325,9 @@ export async function dynamicIpPoolNames(request: RequestClient): Promise<Dynami
   } catch (err) {
     const error = err as ResultError
     const code = String(error?.response?.status ?? 500)
-
-    return {
-      choices: [],
-      error: {
-        message:
-          error?.response?.data?.errors.map((error) => error.message).join(';') ?? 'Unknown error: dynamicIpPoolNames',
-        code: code
-      }
-    }
+    return createErrorResponse(
+      error?.response?.data?.errors.map((error) => error.message).join(';') ?? 'Unknown error: dynamicIpPoolNames',
+      code
+    )
   }
 }

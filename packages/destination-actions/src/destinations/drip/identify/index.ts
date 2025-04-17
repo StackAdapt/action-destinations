@@ -11,10 +11,10 @@ const person = (payload: Payload) => {
           .map(([key, value]) => [key, typeof value === 'object' ? JSON.stringify(value) : String(value)])
       )
       return Object.keys(result).length > 0 ? result : undefined
-    })(),    
+    })(),
     email: payload.email,
     ip_address: payload.ip,
-    sms_number: payload.phone,
+    phone: payload.phone,
     status: payload.status,
     status_updated_at: payload.status_updated_at,
     tags: payload.tags?.split(',').map((tag) => tag.trim()),
@@ -95,7 +95,7 @@ const action: ActionDefinition<Settings, Payload> = {
   perform: (request, { settings, payload }) => {
     return request(`https://api.getdrip.com/v2/${settings.accountId}/subscribers`, {
       method: 'POST',
-      json: person(payload)
+      json: { subscribers: [person(payload)] }
     })
   },
   performBatch: (request, { settings, payload }) => {

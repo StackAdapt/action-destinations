@@ -3,7 +3,8 @@ import { createTestEvent, createTestIntegration, SegmentEvent, PayloadValidation
 import Definition from '../../index'
 import { Settings } from '../../generated-types'
 import { RESERVED_HEADERS } from '../constants'
-import { parseTemplateId, parseIntFromString } from '../utils'
+import { parseTemplateId, parseIntFromString, toUnixTS } from '../utils'
+import { EU_ENDPOINT } from '../../sendgrid-properties'
 
 let testDestination = createTestIntegration(Definition)
 
@@ -172,6 +173,24 @@ describe('Sendgrid.sendEmail', () => {
     expect(responses[0].status).toBe(200)
   })
 
+  it('should send an email using EU endpoint', async () => {
+    const event = createTestEvent(validPayload)
+    const settings = {
+      sendGridApiKey: 'test-api-key',
+      endpoint: EU_ENDPOINT
+    }
+    // send email via Sendgrid
+    nock(EU_ENDPOINT).post('/v3/mail/send', expectedSendgridPayload).reply(200, {})
+    const responses = await testDestination.testAction('sendEmail', {
+      event,
+      settings,
+      useDefaultMappings: true,
+      mapping
+    })
+    expect(responses.length).toBe(1)
+    expect(responses[0].status).toBe(200)
+  })
+
   it('parse template ID correctly', async () => {
     expect(parseTemplateId('DynamicTemplate1 - Version 2 [d-b8d15722e5144a809c5b0e]')).toBe('d-b8d15722e5144a809c5b0e')
     expect(parseTemplateId('d-b8d15722e5144a809c5b0e Some Other Text')).toBe('d-b8d15722e5144a809c5b0e')
@@ -182,6 +201,12 @@ describe('Sendgrid.sendEmail', () => {
     expect(parseIntFromString('123456787654.234567')).toBe(123456787654)
     expect(parseIntFromString('123456787654')).toBe(123456787654)
     expect(parseIntFromString('')).toBe(undefined)
+  })
+
+  it('send_at date should be 10 char epoch', async () => {
+    const date = '2024-01-08T13:52:50.212Z'
+    const epoch = toUnixTS(date)
+    expect(epoch).toBe(1704721970)
   })
 
   it('should throw error if bad headers', async () => {
